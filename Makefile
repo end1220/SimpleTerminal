@@ -16,6 +16,8 @@ else ifeq ($(PLATFORM),r36s)
 CFLAGS += -DBR2 -DR36S
 else ifeq ($(PLATFORM),pi)
 CFLAGS += -DBR2 -DRPI
+else ifeq ($(PLATFORM),rockchip)
+CFLAGS += -DBR2
 endif
 
 SRC = $(wildcard src/*.c)

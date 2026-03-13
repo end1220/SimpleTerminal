@@ -957,11 +957,20 @@ void take_screenshot() {
     SDL_AddTimer(3000, clear_popup_timer, NULL);
 }
 
+/* helper: map joystick hat/axis to directional KEY_* events */
+static void push_joy_dir_key(int key_sym, int press) {
+    SDL_Event sdl_ev = {.key = {.type = press ? SDL_KEYDOWN : SDL_KEYUP,
+                                .state = press ? SDL_PRESSED : SDL_RELEASED,
+                                .keysym = {.scancode = 0, .sym = key_sym, .mod = 0}}};
+    SDL_PushEvent(&sdl_ev);
+}
+
 void main_loop(void) {
     SDL_Event ev;
     int running = 1;
     int button_up_held = 0, button_down_held = 0, button_left_held = 0, button_right_held = 0;
     Uint32 last_button_held_time = 0;
+    Uint8 prev_hat = 0;
     while (running) {
         while (SDL_PollEvent(&ev))
         // while (SDL_WaitEvent(&ev))
@@ -972,13 +981,9 @@ void main_loop(void) {
             }
 
             if (ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) {
-                // printf("Keyboard event received - key: %d (%s), state: %s\n", ev.key.keysym.sym, SDL_GetKeyName(ev.key.keysym.sym), (ev.type == SDL_KEYDOWN) ? "DOWN" : "UP");
                 int keyboard_event = handle_keyboard_event(&ev);
-                if (keyboard_event == 1) {
-                    // printf("OSK handled the event.\n");
-                } else {
-                    // printf("OSK passing event to default handler.\n");
-                    if (event_handler[ev.type]) (event_handler[ev.type])(&ev);
+                if (keyboard_event != 1 && event_handler[ev.type]) {
+                    event_handler[ev.type](&ev);
                 }
 
                 int held = (ev.type == SDL_KEYDOWN);
@@ -999,7 +1004,6 @@ void main_loop(void) {
                         break;
                 }
             } else if (ev.type == SDL_JOYBUTTONDOWN || ev.type == SDL_JOYBUTTONUP) {
-                // printf("Joystick event received type: %s - %d\n", (ev.jbutton.state == SDL_PRESSED) ? "down" : "up", ev.jbutton.button);
                 SDL_Event sdl_event = {.key = {.type = (ev.jbutton.state == SDL_PRESSED) ? SDL_KEYDOWN : SDL_KEYUP,
                                                .state = (ev.jbutton.state == SDL_PRESSED) ? SDL_PRESSED : SDL_RELEASED,
                                                .keysym = {
@@ -1007,19 +1011,56 @@ void main_loop(void) {
                                                    .sym = -ev.jbutton.button,
                                                    .mod = 0,
                                                }}};
-
                 SDL_PushEvent(&sdl_event);
+            } else if (ev.type == SDL_JOYHATMOTION) {
+                /* D-pad reported as hat */
+                Uint8 v = ev.jhat.value;
+                if ((v & SDL_HAT_UP) != (prev_hat & SDL_HAT_UP))
+                    push_joy_dir_key(KEY_UP, (v & SDL_HAT_UP) != 0);
+                if ((v & SDL_HAT_DOWN) != (prev_hat & SDL_HAT_DOWN))
+                    push_joy_dir_key(KEY_DOWN, (v & SDL_HAT_DOWN) != 0);
+                if ((v & SDL_HAT_LEFT) != (prev_hat & SDL_HAT_LEFT))
+                    push_joy_dir_key(KEY_LEFT, (v & SDL_HAT_LEFT) != 0);
+                if ((v & SDL_HAT_RIGHT) != (prev_hat & SDL_HAT_RIGHT))
+                    push_joy_dir_key(KEY_RIGHT, (v & SDL_HAT_RIGHT) != 0);
+                prev_hat = v;
+            } else if (ev.type == SDL_JOYAXISMOTION) {
+                /* Map simple left stick axis to directional keys */
+                const Sint16 DEAD_ZONE = 8000;
+                int active = SDL_abs(ev.jaxis.value) > DEAD_ZONE;
+                if (ev.jaxis.axis == 0) {  /* left/right */
+                    if (!active) {
+                        push_joy_dir_key(KEY_LEFT, 0);
+                        push_joy_dir_key(KEY_RIGHT, 0);
+                    } else if (ev.jaxis.value > 0) {
+                        push_joy_dir_key(KEY_RIGHT, 1);
+                        push_joy_dir_key(KEY_LEFT, 0);
+                    } else {
+                        push_joy_dir_key(KEY_LEFT, 1);
+                        push_joy_dir_key(KEY_RIGHT, 0);
+                    }
+                } else if (ev.jaxis.axis == 1) { /* up/down */
+                    if (!active) {
+                        push_joy_dir_key(KEY_UP, 0);
+                        push_joy_dir_key(KEY_DOWN, 0);
+                    } else if (ev.jaxis.value > 0) {
+                        push_joy_dir_key(KEY_DOWN, 1);
+                        push_joy_dir_key(KEY_UP, 0);
+                    } else {
+                        push_joy_dir_key(KEY_UP, 1);
+                        push_joy_dir_key(KEY_DOWN, 0);
+                    }
+                }
             } else {
                 if (event_handler[ev.type]) (event_handler[ev.type])(&ev);
             }
 
-            switch (ev.type) {
-                case SDL_USEREVENT:
-                    if (ev.user.code == 0) {  // redraw terminal
-                        draw();
-                    } else if (ev.user.code == 1) {  // Take a screenshot
-                        take_screenshot();
-                    }
+            if (ev.type == SDL_USEREVENT) {
+                if (ev.user.code == 0) {
+                    draw();
+                } else if (ev.user.code == 1) {
+                    take_screenshot();
+                }
             }
         }
 
@@ -1039,8 +1080,8 @@ void main_loop(void) {
             last_button_held_time = now;
         }
 
-        update_render();  // redraw the screen
-        SDL_Delay(33);    // ~30 FPS
+        update_render();
+        SDL_Delay(33);
     }
 
     sdl_shutdown();
