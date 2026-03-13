@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
+#include <limits.h>
 #include <pty.h>
 #include <pwd.h>
 #include <signal.h>
@@ -157,7 +159,20 @@ void exec_sh(void) {
     unsetenv("COLUMNS");
     unsetenv("LINES");
     unsetenv("TERMCAP");
-    chdir(getenv("HOME"));
+    {
+        char exe_path[PATH_MAX];
+        ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+        if (len > 0) {
+            exe_path[len] = '\0';
+            char *dir = dirname(exe_path);
+            if (dir && chdir(dir) == 0)
+                ; /* started in executable's directory */
+            else if (getenv("HOME"))
+                chdir(getenv("HOME"));
+        } else if (getenv("HOME")) {
+            chdir(getenv("HOME"));
+        }
+    }
 
     if (show_help != 0) {
         system("uname -a");
