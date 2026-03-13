@@ -8,43 +8,49 @@
 #if defined(BR2) && !defined(RPI)  // Buildroot handhelds with SDL2 (not raspberry pi)
 
 // Physical button layout
+//
+// NOTE:
+// Joystick button events are converted to synthetic key symbols with:
+//     sym = -(button_index + 1)
+// in main.c. So button 0 -> -1, button 1 -> -2, ...
+// We intentionally avoid 0 to prevent collision with SDLK_UNKNOWN (0).
 
 #if defined(R36S)
 // R36S / dArkOS (GO-Super Gamepad) confirmed via jstest/evtest:
 // D-pad: 8=Up, 9=Down, 10=Left, 11=Right
 // Select=12, Start=13, L3=14, R3=15, FN(MENU)=16
-#define JOYBUTTON_UP -8
-#define JOYBUTTON_DOWN -9
-#define JOYBUTTON_LEFT -10
-#define JOYBUTTON_RIGHT -11
-#define JOYBUTTON_SELECT -12
-#define JOYBUTTON_START -13
-#define JOYBUTTON_L3 -14
-#define JOYBUTTON_R3 -15
-#define JOYBUTTON_MENU -16
+#define JOYBUTTON_UP -9
+#define JOYBUTTON_DOWN -10
+#define JOYBUTTON_LEFT -11
+#define JOYBUTTON_RIGHT -12
+#define JOYBUTTON_SELECT -13
+#define JOYBUTTON_START -14
+#define JOYBUTTON_L3 -15
+#define JOYBUTTON_R3 -16
+#define JOYBUTTON_MENU -17
 
 #else
 // Default BR2 handheld layout (rgb30, h700, etc.)
-#define JOYBUTTON_UP -13
-#define JOYBUTTON_DOWN -14
-#define JOYBUTTON_LEFT -15
-#define JOYBUTTON_RIGHT -16
-#define JOYBUTTON_SELECT -8
-#define JOYBUTTON_START -9
-#define JOYBUTTON_L3 -11
-#define JOYBUTTON_R3 -12
-#define JOYBUTTON_MENU -10
+#define JOYBUTTON_UP -14
+#define JOYBUTTON_DOWN -15
+#define JOYBUTTON_LEFT -16
+#define JOYBUTTON_RIGHT -17
+#define JOYBUTTON_SELECT -9
+#define JOYBUTTON_START -10
+#define JOYBUTTON_L3 -12
+#define JOYBUTTON_R3 -13
+#define JOYBUTTON_MENU -11
 #endif
 
 // Shared buttons
-#define JOYBUTTON_A -1
-#define JOYBUTTON_B -0
-#define JOYBUTTON_X -2
-#define JOYBUTTON_Y -3
-#define JOYBUTTON_L1 -4
-#define JOYBUTTON_R1 -5
-#define JOYBUTTON_L2 -6
-#define JOYBUTTON_R2 -7
+#define JOYBUTTON_A -2
+#define JOYBUTTON_B -1
+#define JOYBUTTON_X -3
+#define JOYBUTTON_Y -4
+#define JOYBUTTON_L1 -5
+#define JOYBUTTON_R1 -6
+#define JOYBUTTON_L2 -7
+#define JOYBUTTON_R2 -8
 
 // Logical key bindings
 

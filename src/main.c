@@ -1004,11 +1004,16 @@ void main_loop(void) {
                         break;
                 }
             } else if (ev.type == SDL_JOYBUTTONDOWN || ev.type == SDL_JOYBUTTONUP) {
+                /*
+                 * Use -(button + 1) so every joystick button maps to a
+                 * strictly negative synthetic key symbol.
+                 * This avoids value 0, which collides with SDLK_UNKNOWN.
+                 */
                 SDL_Event sdl_event = {.key = {.type = (ev.jbutton.state == SDL_PRESSED) ? SDL_KEYDOWN : SDL_KEYUP,
                                                .state = (ev.jbutton.state == SDL_PRESSED) ? SDL_PRESSED : SDL_RELEASED,
                                                .keysym = {
-                                                   .scancode = -ev.jbutton.button,
-                                                   .sym = -ev.jbutton.button,
+                                                   .scancode = -(ev.jbutton.button + 1),
+                                                   .sym = -(ev.jbutton.button + 1),
                                                    .mod = 0,
                                                }}};
                 SDL_PushEvent(&sdl_event);
